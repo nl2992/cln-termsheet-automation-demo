@@ -10,6 +10,10 @@ npm install
 npm run dev      # http://localhost:5173
 npm run build    # typecheck + production build to dist/
 ```
+`npm run build` outputs a **single self-contained `dist/index.html`** (JS/CSS inlined via
+`vite-plugin-singlefile`, no `dist/assets/*`) — required for firm dashboard deployment, which only
+accepts one HTML file. Verify with `find dist -type f` — it should list only `index.html`.
+
 No backend, no database. Templates are never stored — the user uploads/pastes their own each session
 (`↑ Upload Template`, or paste text into "Auto-fill from Pasted Content"). Everything (form values, draft
 state) lives in the browser via `localStorage`.
