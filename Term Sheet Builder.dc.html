@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;}
+  body{font-family:'Helvetica Neue',Arial,Helvetica,sans-serif;background:#ececea;color:#1c1c1c;-webkit-font-smoothing:antialiased;}
+  input,select,textarea,button{font-family:inherit;}
+  input,select,textarea{font-family:'Helvetica Neue',Arial,sans-serif;}
+  ::placeholder{color:#b7b7b1;}
+  select{appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0l5 6 5-6z' fill='%23999'/></svg>");background-repeat:no-repeat;background-position:right 10px center;padding-right:26px;}
+  ::-webkit-scrollbar{width:10px;height:10px;}
+  ::-webkit-scrollbar-thumb{background:#cfcfc9;border-radius:6px;border:2px solid transparent;background-clip:content-box;}
+  @media print{
+    body *{visibility:hidden;}
+    #tsheet, #tsheet *{visibility:visible;}
+    #tsheet{position:absolute;left:0;top:0;width:100%;box-shadow:none;margin:0;padding:40px 48px;}
+  }
+</style>
+</helmet>
+
+<div style="display:flex;flex-direction:column;height:100vh;width:100%;overflow:hidden;">
+
+  <!-- ============ HEADER ============ -->
+  <header style="display:flex;align-items:center;gap:16px;background:#ffffff;border-bottom:1px solid #dcdcd8;padding:0 20px;height:56px;flex:0 0 auto;">
+    <div style="display:flex;align-items:center;gap:11px;">
+      <div style="background:#DB0011;color:#fff;font-weight:700;font-size:15px;letter-spacing:.06em;padding:7px 9px;line-height:1;">HSBC</div>
+      <div style="display:flex;flex-direction:column;line-height:1.15;">
+        <span style="font-size:13.5px;font-weight:700;color:#1c1c1c;">Structured Products</span>
+        <span style="font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:#8a8a86;">Term Sheet Automation</span>
+      </div>
+    </div>
+    <div style="flex:1;"></div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span style="font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:#8a8a86;">Client Segment</span>
+      <select value="{{ client }}" onChange="{{ onClientChange }}" style="border:1px solid #d8d8d5;border-radius:2px;padding:6px 26px 6px 9px;font-size:12px;background-color:#fafaf9;color:#1c1c1c;outline:none;min-width:190px;">
+        <option value="">— Select client segment —</option>
+        <sc-for list="{{ clientList }}" as="c" hint-placeholder-count="5"><option value="{{ c }}">{{ c }}</option></sc-for>
+      </select>
+      <span style="font-size:10px;font-weight:700;letter-spacing:.08em;color:#8a5a00;background:#fdf1d8;border:1px solid #eddba5;padding:4px 8px;border-radius:2px;">{{ env }}</span>
+    </div>
+  </header>
+
+  <!-- ============ TOOLBAR ============ -->
+  <div style="display:flex;align-items:center;gap:16px;background:#f7f7f5;border-bottom:1px solid #dcdcd8;padding:10px 20px;flex:0 0 auto;">
+    <div style="display:flex;flex-direction:column;gap:6px;min-width:360px;">
+      <div style="display:flex;align-items:center;gap:9px;">
+        <span style="font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:#8a8a86;font-weight:600;white-space:nowrap;">Product</span>
+        <select value="{{ productId }}" onChange="{{ onProductChange }}" style="flex:1;min-width:0;border:1px solid #cfcfc9;border-radius:2px;padding:7px 26px 7px 10px;font-size:13px;font-weight:700;background-color:#fff;color:#1c1c1c;outline:none;" style-focus="border-color:#DB0011;box-shadow:0 0 0 2px rgba(219,0,17,.12);">
+          <sc-for list="{{ productGroups }}" as="g" hint-placeholder-count="5">
+            <optgroup label="{{ g.name }}">
+              <sc-for list="{{ g.options }}" as="o" hint-placeholder-count="3"><option value="{{ o.id }}" disabled="{{ o.disabled }}">{{ o.label }}</option></sc-for>
+            </optgroup>
+          </sc-for>
+        </select>
+        <span style="font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#DB0011;background:#fdecec;border:1px solid #f2cdd0;padding:3px 7px;border-radius:2px;white-space:nowrap;">{{ productAssetClass }}</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;">
+        <div style="width:150px;height:5px;background:#e2e2de;border-radius:99px;overflow:hidden;"><div style="{{ pctStyle }}"></div></div>
+        <span style="font-size:10.5px;color:#77776f;">{{ completionLabel }}</span>
+        <sc-if value="{{ reqMissing }}" hint-placeholder-val=""><span style="font-size:10px;font-weight:700;color:#b3000e;background:#fdecec;border:1px solid #f2cdd0;padding:2px 8px;border-radius:99px;">{{ reqLabel }}</span></sc-if>
+        <sc-if value="{{ reqComplete }}" hint-placeholder-val=""><span style="font-size:10px;font-weight:700;color:#2b6b34;background:#eef6ef;border:1px solid #c9e2cc;padding:2px 8px;border-radius:99px;">✓ Required complete</span></sc-if>
+      </div>
+    </div>
+    <div style="flex:1;"></div>
+    <sc-if value="{{ templateName }}" hint-placeholder-val="">
+      <div style="display:flex;align-items:center;gap:7px;background:#eef6ef;border:1px solid #c9e2cc;border-radius:2px;padding:5px 10px;font-size:11.5px;color:#2b6b34;">
+        <span style="width:6px;height:6px;border-radius:50%;background:#3a8f47;display:inline-block;"></span>
+        Template: {{ templateName }} · fields auto-mapped
+        <button onClick="{{ onClearTemplate }}" style="border:none;background:transparent;color:#2b6b34;cursor:pointer;font-size:13px;line-height:1;padding:0 0 0 4px;">×</button>
+      </div>
+    </sc-if>
+    <input type="file" ref="{{ fileRef }}" onChange="{{ onFile }}" accept=".pdf,.docx,.doc,.xlsx,.xls,.xml" style="display:none;" />
+    <button onClick="{{ onUploadClick }}" style="display:flex;align-items:center;gap:6px;border:1px solid #cfcfc9;background:#fff;color:#3a3a38;font-size:12px;font-weight:600;padding:7px 13px;border-radius:2px;cursor:pointer;" style-hover="border-color:#b0b0aa;background:#f4f4f2;">↑ Upload Template</button>
+    <button onClick="{{ onReset }}" style="border:1px solid #cfcfc9;background:#fff;color:#3a3a38;font-size:12px;font-weight:600;padding:7px 13px;border-radius:2px;cursor:pointer;" style-hover="border-color:#b0b0aa;background:#f4f4f2;">Reset</button>
+    <button onClick="{{ onSaveDraft }}" style="border:1px solid #cfcfc9;background:#fff;color:#3a3a38;font-size:12px;font-weight:600;padding:7px 13px;border-radius:2px;cursor:pointer;" style-hover="border-color:#b0b0aa;background:#f4f4f2;">{{ saveLabel }}</button>
+    <button onClick="{{ onPrint }}" style="border:1px solid #DB0011;background:#DB0011;color:#fff;font-size:12px;font-weight:700;padding:7px 15px;border-radius:2px;cursor:pointer;" style-hover="background:#b3000e;border-color:#b3000e;">Export PDF</button>
+  </div>
+
+  <!-- ============ BODY ============ -->
+  <div style="display:flex;flex:1;min-height:0;">
+
+    <!-- FORM -->
+    <main style="flex:1;min-width:0;overflow-y:auto;background:#ececea;padding:20px 24px 60px;">
+      <div style="max-width:760px;margin:0 auto;">
+        <sc-for list="{{ sections }}" as="sec" hint-placeholder-count="5">
+          <section style="background:#fff;border:1px solid #e0e0dc;border-radius:3px;margin-bottom:16px;overflow:hidden;">
+            <div style="display:flex;align-items:center;gap:8px;padding:11px 18px;background:#f7f7f5;border-bottom:1px solid #e6e6e2;">
+              <span style="width:5px;height:14px;background:#DB0011;border-radius:1px;display:inline-block;"></span>
+              <h2 style="margin:0;font-size:12.5px;font-weight:700;letter-spacing:.02em;color:#2b2b28;text-transform:uppercase;">{{ sec.title }}</h2>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px 22px;padding:18px;">
+              <sc-for list="{{ sec.fields }}" as="field" hint-placeholder-count="6">
+                <div style="{{ field.cellStyle }}">
+                  <label style="display:block;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:#8a8a86;margin-bottom:5px;font-weight:600;">{{ field.l }}<sc-if value="{{ field.required }}" hint-placeholder-val=""><span style="color:#DB0011;margin-left:3px;font-weight:700;">*</span></sc-if></label>
+                  <sc-if value="{{ field.isSelect }}" hint-placeholder-val="{{ true }}">
+                    <select value="{{ field.value }}" onChange="{{ field.onInput }}" style="{{ field.selectStyle }}" style-focus="border-color:#DB0011;box-shadow:0 0 0 2px rgba(219,0,17,.12);">
+                      <option value="">— Select —</option>
+                      <sc-for list="{{ field.options }}" as="opt" hint-placeholder-count="3"><option value="{{ opt }}">{{ opt }}</option></sc-for>
+                    </select>
+                  </sc-if>
+                  <sc-if value="{{ field.isArea }}" hint-placeholder-val="{{ true }}">
+                    <textarea value="{{ field.value }}" onChange="{{ field.onInput }}" placeholder="{{ field.placeholder }}" rows="2" style="{{ field.areaStyle }}" style-focus="border-color:#DB0011;box-shadow:0 0 0 2px rgba(219,0,17,.12);"></textarea>
+                  </sc-if>
+                  <sc-if value="{{ field.isInput }}" hint-placeholder-val="{{ true }}">
+                    <div style="display:flex;align-items:stretch;gap:0;">
+                      <input type="{{ field.inputType }}" value="{{ field.value }}" onChange="{{ field.onInput }}" placeholder="{{ field.placeholder }}" style="{{ field.inputStyle }}" style-focus="border-color:#DB0011;box-shadow:0 0 0 2px rgba(219,0,17,.12);" />
+                      <sc-if value="{{ field.hasUnit }}" hint-placeholder-val="">
+                        <span style="display:flex;align-items:center;padding:0 11px;background:#f3f3f0;border:1px solid #d8d8d5;border-left:none;border-radius:0 2px 2px 0;font-size:11.5px;color:#77776f;white-space:nowrap;">{{ field.unit }}</span>
+                      </sc-if>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{ field.showErr }}" hint-placeholder-val=""><div style="font-size:10px;color:#b3000e;margin-top:4px;font-weight:600;">Required — please complete</div></sc-if>
+                </div>
+              </sc-for>
+            </div>
+          </section>
+        </sc-for>
+        <p style="font-size:10.5px;color:#a0a09a;text-align:center;margin:10px 0 0;line-height:1.5;">Front-end demonstration · fields validated and mapped client-side only · no pricing, booking or STP connectivity is wired in this build.</p>
+      </div>
+    </main>
+
+    <!-- PREVIEW -->
+    <aside style="flex:0 0 500px;background:#3a3a38;overflow-y:auto;padding:22px 22px 60px;">
+      <div id="tsheet" style="background:#fff;border-radius:2px;box-shadow:0 6px 24px rgba(0,0,0,.28);padding:30px 34px 34px;position:relative;">
+        <div style="position:absolute;top:26px;right:34px;font-size:9px;font-weight:700;letter-spacing:.14em;color:#DB0011;border:1px solid #DB0011;padding:3px 7px;border-radius:2px;">INDICATIVE</div>
+        <div style="border-bottom:3px solid #DB0011;padding-bottom:13px;margin-bottom:16px;">
+          <div style="background:#DB0011;color:#fff;font-weight:700;font-size:12px;letter-spacing:.05em;padding:4px 7px;display:inline-block;line-height:1;">HSBC</div>
+          <div style="font-family:Georgia,'Times New Roman',serif;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#8a8a86;margin-top:12px;">Indicative Term Sheet</div>
+          <div style="font-family:Georgia,'Times New Roman',serif;font-size:22px;font-weight:700;color:#181818;line-height:1.2;margin-top:3px;text-wrap:pretty;">{{ productName }}</div>
+          <div style="font-family:Georgia,serif;font-size:12px;color:#767670;margin-top:4px;">{{ productAssetClass }} · Structured Products{{ clientSuffix }}</div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-family:Georgia,serif;font-size:10.5px;color:#767670;margin-bottom:18px;border-bottom:1px dotted #ddd;padding-bottom:10px;">
+          <span style="font-weight:700;letter-spacing:.05em;color:#3a3a38;">{{ conf }}</span>
+          <span>Ref: {{ refId }} · {{ today }}</span>
+        </div>
+
+        <sc-for list="{{ preview }}" as="grp" hint-placeholder-count="5">
+          <div style="margin-bottom:16px;">
+            <div style="font-family:Georgia,serif;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#DB0011;border-bottom:1px solid #ecd2d4;padding-bottom:4px;margin-bottom:7px;font-weight:700;">{{ grp.title }}</div>
+            <sc-for list="{{ grp.rows }}" as="row" hint-placeholder-count="4">
+              <div style="display:flex;justify-content:space-between;gap:18px;padding:4px 0;border-bottom:1px dotted #eee;font-family:Georgia,'Times New Roman',serif;font-size:12px;align-items:baseline;">
+                <span style="color:#6a6a64;flex:0 0 44%;">{{ row.l }}</span>
+                <span style="{{ row.valStyle }}">{{ row.value }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </sc-for>
+
+        <p style="font-family:Georgia,serif;font-size:9px;color:#a0a09a;line-height:1.5;margin:20px 0 0;border-top:1px solid #eee;padding-top:12px;font-style:italic;">This document is indicative and for discussion purposes only. It does not constitute an offer, recommendation or commitment to transact. Terms are subject to internal approval, final documentation and market conditions. Figures shown are placeholders entered in this front-end demonstration.</p>
+      </div>
+    </aside>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:&quot;100%&quot;,&quot;height&quot;:&quot;100%&quot;},&quot;confidentialityTag&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;PRIVATE &amp; CONFIDENTIAL&quot;,&quot;PUBLIC&quot;,&quot;INTERNAL USE ONLY&quot;],&quot;default&quot;:&quot;PRIVATE &amp; CONFIDENTIAL&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Term Sheet&quot;},&quot;environment&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;PROD&quot;,&quot;UAT&quot;,&quot;STAGING&quot;,&quot;SANDBOX&quot;],&quot;default&quot;:&quot;UAT&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Environment&quot;}}">
+class Component extends DCLogic {
+  constructor(props){
+    super(props);
+    this.fileRef = React.createRef();
+    this.ENABLED = ['cln','linearzerocln'];
+    this.state = { productId:'cln', values:{}, client:'', templateName:'', saved:false, attempted:false };
+
+    const F = (k,l,t,o)=>Object.assign({k,l,t},o||{});
+
+    // ---- Common sections ----
+    this.COMMON_PRE = [
+      { title:'Parties & Identifiers', fields:[
+        F('issuer','Issuer','select',{o:['HSBC Bank plc','HSBC Continental Europe S.A.','HSBC Bank USA, N.A.','The Hongkong and Shanghai Banking Corporation Ltd'],d:'HSBC Bank plc',req:true}),
+        F('guarantor','Guarantor','text',{ph:'N/A'}),
+        F('dealer','Dealer / Arranger','select',{o:['HSBC Bank plc','HSBC Securities (USA) Inc.','HSBC Continental Europe S.A.'],d:'HSBC Bank plc'}),
+        F('isin','ISIN','text',{ph:'XS0000000000',req:true}),
+        F('commoncode','Common Code','text',{ph:'000000000'}),
+        F('series','Series / Tranche','text',{ph:'2026-01'}),
+      ]},
+    ];
+    this.COMMON_POST = [
+      { title:'Dates', fields:[
+        F('tradedate','Trade Date','date',{req:true}),
+        F('strikedate','Strike / Initial Valuation Date','date'),
+        F('issuedate','Issue / Settlement Date','date',{req:true}),
+        F('finalval','Final Valuation Date','date'),
+        F('maturity','Maturity / Redemption Date','date',{req:true}),
+      ]},
+      { title:'Sizing & Pricing', fields:[
+        F('currency','Settlement Currency','select',{o:['USD','EUR','GBP','HKD','SGD','JPY','CNH','AUD','CHF'],d:'USD',req:true}),
+        F('notional','Aggregate Notional','num',{ph:'10,000,000',req:true}),
+        F('denom','Denomination','num',{ph:'1,000'}),
+        F('issueprice','Issue Price','num',{u:'%',d:'100'}),
+        F('reoffer','Re-offer Price','num',{u:'%',ph:'99.00'}),
+      ]},
+      { title:'Legal & Operational', fields:[
+        F('calcagent','Calculation Agent','select',{o:['HSBC Bank plc','HSBC Continental Europe S.A.'],d:'HSBC Bank plc',req:true}),
+        F('law','Governing Law','select',{o:['English Law','New York Law','Hong Kong Law'],d:'English Law',req:true}),
+        F('listing','Listing','select',{o:['Unlisted','London Stock Exchange','Luxembourg (Euro MTF)','SIX Swiss Exchange','SGX-ST'],d:'Unlisted'}),
+        F('bizday','Business Day Convention','select',{o:['Following','Modified Following','Preceding'],d:'Modified Following'}),
+        F('settlement','Settlement Type','select',{o:['Cash','Physical','Cash or Physical (Issuer option)'],d:'Cash'}),
+        F('form','Form of Note','select',{o:['Registered','Bearer','Global Note'],d:'Global Note'}),
+        F('clearing','Clearing','select',{o:['Euroclear / Clearstream','DTC','CMU (Hong Kong)'],d:'Euroclear / Clearstream'}),
+        F('daycount','Day Count Fraction','select',{o:['ACT/360','ACT/365','30/360','ACT/ACT'],d:'ACT/360'}),
+      ]},
+    ];
+
+    // ---- Product-specific middle sections ----
+    this.MID = {
+      autocall:[
+        { title:'Underlying(s)', fields:[
+          F('underlyings','Underlying(s) / Basket','area',{ph:'e.g. AAPL UW / MSFT UW / NVDA UW (worst-of)'}),
+          F('baskettype','Basket Type','select',{o:['Single','Worst-of','Best-of','Weighted'],d:'Worst-of'}),
+          F('initialfix','Initial Fixing Level','text',{ph:'Closing level on Strike Date'}),
+        ]},
+        { title:'Autocall & Coupon', fields:[
+          F('accbarrier','Autocall Barrier','num',{u:'%',d:'100'}),
+          F('acfreq','Autocall Observation','select',{o:['Monthly','Quarterly','Semi-annual','Annual'],d:'Quarterly'}),
+          F('stepdown','Autocall Step-down','num',{u:'% p.a.',ph:'0'}),
+          F('coupon','Coupon','num',{u:'% p.a.',ph:'8.00'}),
+          F('couponbarrier','Coupon Barrier','num',{u:'%',d:'70'}),
+          F('memory','Memory Coupon','select',{o:['Yes','No'],d:'Yes'}),
+        ]},
+        { title:'Downside Protection', fields:[
+          F('kibarrier','Knock-in Barrier','num',{u:'%',d:'60'}),
+          F('kitype','Barrier Observation','select',{o:['European (at maturity)','American (continuous)','Daily close'],d:'European (at maturity)'}),
+          F('gearing','Downside Gearing','num',{u:'%',d:'100'}),
+        ]},
+      ],
+      fcn:[
+        { title:'Underlying(s)', fields:[
+          F('underlyings','Underlying(s) / Basket','area',{ph:'e.g. 700 HK / 9988 HK (worst-of)'}),
+          F('baskettype','Basket Type','select',{o:['Single','Worst-of','Best-of'],d:'Worst-of'}),
+          F('strike','Strike','num',{u:'%',d:'90'}),
+        ]},
+        { title:'Fixed Coupon & Knock-out', fields:[
+          F('coupon','Fixed Coupon','num',{u:'% p.a.',ph:'10.00'}),
+          F('couponfreq','Coupon Frequency','select',{o:['Monthly','Quarterly','Semi-annual'],d:'Monthly'}),
+          F('kolevel','Knock-out (Autocall) Level','num',{u:'%',d:'100'}),
+          F('kofreq','KO Observation','select',{o:['Daily','Monthly','Quarterly'],d:'Monthly'}),
+          F('kibarrier','Knock-in Barrier','num',{u:'%',d:'60'}),
+        ]},
+      ],
+      accumulator:[
+        { title:'Accumulator Terms', fields:[
+          F('underlyings','Underlying','text',{ph:'e.g. Gold (XAU/USD)'}),
+          F('accprice','Accumulation / Strike Price','num',{ph:'2,050'}),
+          F('kolevel','Knock-out Level','num',{u:'%',d:'103'}),
+          F('gearing','Gearing / Leverage','num',{u:'x',d:'2'}),
+          F('unitsday','Units per Fixing','num',{ph:'1,000'}),
+          F('guardays','Guaranteed Fixings','num',{ph:'20'}),
+          F('fixingfreq','Fixing Frequency','select',{o:['Daily','Weekly'],d:'Daily'}),
+        ]},
+      ],
+      twinwin:[
+        { title:'Twin-Win Payoff', fields:[
+          F('underlyings','Underlying','text',{ph:'e.g. Energy Select Sector (XLE)'}),
+          F('partup','Upside Participation','num',{u:'%',d:'100'}),
+          F('partdown','Downside Participation','num',{u:'%',d:'100'}),
+          F('barrier','Barrier','num',{u:'%',d:'70'}),
+          F('cap','Cap','num',{u:'%',ph:'None'}),
+        ]},
+      ],
+      superbull:[
+        { title:'Superbull Autocall', fields:[
+          F('underlyings','Underlying','text',{ph:'e.g. EURO STOXX 50'}),
+          F('partup','Upside Participation','num',{u:'%',d:'150'}),
+          F('accbarrier','Autocall Barrier','num',{u:'%',d:'100'}),
+          F('coupon','Coupon','num',{u:'% p.a.',ph:'9.00'}),
+          F('kibarrier','Knock-in Barrier','num',{u:'%',d:'55'}),
+        ]},
+      ],
+      cln:[
+        { title:'Reference Credit', fields:[
+          F('refentity','Reference Entity','text',{ph:'e.g. Republic of Indonesia',req:true}),
+          F('refobligation','Reference Obligation','text',{ph:'ISIN / bond'}),
+          F('seniority','Seniority','select',{o:['Senior Unsecured','Subordinated','Senior Secured'],d:'Senior Unsecured',req:true}),
+          F('creditevents','Credit Events','area',{d:'Bankruptcy; Failure to Pay; Restructuring (Mod-Mod-R)'}),
+          F('recovery','Settlement on Credit Event','select',{o:['Auction','Fixed Recovery','Cash','Physical'],d:'Auction'}),
+        ]},
+        { title:'CLN Coupon', fields:[
+          F('coupon','Coupon','num',{u:'% p.a.',ph:'6.50',req:true}),
+          F('couponfreq','Coupon Frequency','select',{o:['Quarterly','Semi-annual','Annual'],d:'Quarterly'}),
+          F('redemption','Redemption','select',{o:['Par (no credit event)','Recovery-linked'],d:'Par (no credit event)'}),
+        ]},
+      ],
+      clnaxe:[
+        { title:'CLN Axe', fields:[
+          F('refentity','Reference Entity','text',{ph:'Single name / index'}),
+          F('direction','Axe Direction','select',{o:['Offer (HSBC sells protection)','Bid (HSBC buys protection)'],d:'Offer (HSBC sells protection)'}),
+          F('tenor','Tenor','text',{ph:'5Y'}),
+          F('spread','Indicative Spread','num',{u:'bp',ph:'145'}),
+          F('seniority','Seniority','select',{o:['Senior Unsecured','Subordinated'],d:'Senior Unsecured'}),
+          F('minsize','Minimum Size','num',{ph:'5,000,000'}),
+          F('axevalidity','Axe Validity','select',{o:['Live','Indicative','Firm to EOD'],d:'Indicative'}),
+        ]},
+      ],
+      repackpickup:[
+        { title:'Repackaged Asset', fields:[
+          F('underbond','Underlying Bond','text',{ph:'ISIN / description'}),
+          F('wrapper','Repack Wrapper / SPV','text',{ph:'HSBC-sponsored repack SPV'}),
+          F('pickup','Yield Pick-up','num',{u:'bp',ph:'35'}),
+          F('repackcoupon','Repack Coupon','num',{u:'% p.a.',ph:'5.25'}),
+          F('assetmaturity','Underlying Asset Maturity','date'),
+        ]},
+      ],
+      repackcds:[
+        { title:'Repack + CDS Overlay', fields:[
+          F('underbond','Underlying Bond','text',{ph:'ISIN / description'}),
+          F('cdsref','CDS Reference Entity','text',{ph:'Protection reference'}),
+          F('cdstenor','CDS Tenor','text',{ph:'5Y'}),
+          F('protnotional','Protection Notional','num',{ph:'10,000,000'}),
+          F('netspread','Net Spread to Investor','num',{u:'bp',ph:'180'}),
+        ]},
+      ],
+      linearzerocln:[
+        { title:'Linear Zero CLN', fields:[
+          F('refentity','Reference Entity','text',{ph:'Single name / sovereign',req:true}),
+          F('accretion','Zero-coupon Accretion Yield','num',{u:'% p.a.',ph:'6.00',req:true}),
+          F('amortschedule','Linear Amortisation Schedule','area',{ph:'e.g. equal annual amortisation from Y2'}),
+          F('callable','Callable','select',{o:['Yes','No'],d:'No'}),
+          F('seniority','Seniority','select',{o:['Senior Unsecured','Subordinated'],d:'Senior Unsecured'}),
+        ]},
+      ],
+      sofrfloater:[
+        { title:'Floating Coupon', fields:[
+          F('refrate','Reference Rate','select',{o:['USD SOFR (compounded)','USD CMS 10Y','USD CMS 30Y-2Y Spread','SONIA','EURIBOR 3M'],d:'USD SOFR (compounded)'}),
+          F('spread','Spread','num',{u:'bp',ph:'80'}),
+          F('cap','Cap','num',{u:'%',ph:'6.50'}),
+          F('floor','Floor','num',{u:'%',d:'0'}),
+          F('couponfreq','Coupon Frequency','select',{o:['Quarterly','Semi-annual','Annual'],d:'Quarterly'}),
+        ]},
+        { title:'Call Schedule', fields:[
+          F('callable','Callable','select',{o:['Yes','No'],d:'Yes'}),
+          F('firstcall','First Call Date','date'),
+          F('callfreq','Call Frequency','select',{o:['One-time','Quarterly','Semi-annual','Annual'],d:'Annual'}),
+          F('callprice','Call Price','num',{u:'%',d:'100'}),
+        ]},
+      ],
+      fixedcallable:[
+        { title:'Rate & Structure', fields:[
+          F('structure','Structure','select',{o:['Fixed Callable','Linear Zero Callable','Step-up Callable'],d:'Fixed Callable'}),
+          F('fixedrate','Fixed / Step-up Rate','num',{u:'% p.a.',ph:'5.50'}),
+          F('accretion','Zero Accretion Yield','num',{u:'% p.a.',ph:'N/A'}),
+          F('couponfreq','Coupon Frequency','select',{o:['Annual','Semi-annual','Quarterly'],d:'Annual'}),
+        ]},
+        { title:'Call Schedule', fields:[
+          F('callable','Callable','select',{o:['Yes','No'],d:'Yes'}),
+          F('firstcall','First Call Date','date'),
+          F('callfreq','Call Frequency','select',{o:['One-time','Quarterly','Semi-annual','Annual'],d:'Annual'}),
+          F('callprice','Call Price','num',{u:'%',d:'100'}),
+        ]},
+      ],
+      inflation:[
+        { title:'Inflation Linkage', fields:[
+          F('inflindex','Inflation Index','select',{o:['US CPI (CPURNSA)','UK RPI','Eurozone HICPxT'],d:'US CPI (CPURNSA)'}),
+          F('participation','Participation','num',{u:'%',d:'100'}),
+          F('floor','Coupon Floor','num',{u:'%',d:'0'}),
+          F('cap','Coupon Cap','num',{u:'%',ph:'None'}),
+          F('baseindex','Base Index Level','num',{ph:'Set on Strike Date'}),
+          F('lag','Indexation Lag','select',{o:['3 months','2 months'],d:'3 months'}),
+        ]},
+      ],
+      rangeaccrual:[
+        { title:'Range Accrual', fields:[
+          F('refrate','Reference / Underlying','select',{o:['USD SOFR','XAG (Silver)','USD CMS Spread','EUR/USD'],d:'USD SOFR'}),
+          F('rangelow','Range Lower Bound','num',{ph:'3.00'}),
+          F('rangehigh','Range Upper Bound','num',{ph:'5.50'}),
+          F('accrualcoupon','Coupon (in range)','num',{u:'% p.a.',ph:'7.00'}),
+          F('nonaccrual','Coupon (outside range)','num',{u:'% p.a.',d:'0'}),
+          F('obs','Observation','select',{o:['Daily','Business Days'],d:'Business Days'}),
+          F('conversion','Conversion Feature','select',{o:['None','Physical into underlying','Cash'],d:'None'}),
+        ]},
+      ],
+      fxrange:[
+        { title:'FX Range Accrual + Conversion', fields:[
+          F('ccypair','Currency Pair','select',{o:['XAG/USD','EUR/USD','AUD/USD','USD/JPY','GBP/USD'],d:'XAG/USD'}),
+          F('rangelow','Range Lower Bound','num',{ph:'28.00'}),
+          F('rangehigh','Range Upper Bound','num',{ph:'34.00'}),
+          F('accrualcoupon','Accrual Coupon','num',{u:'% p.a.',ph:'9.00'}),
+          F('convstrike','Conversion Strike','num',{ph:'27.00'}),
+          F('convccy','Conversion Currency','select',{o:['USD','EUR','JPY','Underlying units'],d:'USD'}),
+          F('obs','Observation','select',{o:['Daily','Business Days'],d:'Daily'}),
+        ]},
+      ],
+      stepupautocall:[
+        { title:'Index Step-up Autocall', fields:[
+          F('underlyings','Index / Basket','text',{ph:'e.g. S&P Global Diversified'}),
+          F('accbarrier','Autocall Barrier','num',{u:'%',d:'100'}),
+          F('stepcoupon','Step-up Coupon Schedule','area',{ph:'e.g. Y1 6% / Y2 12% / Y3 18% (memory)'}),
+          F('couponbarrier','Coupon Barrier','num',{u:'%',d:'70'}),
+          F('kibarrier','Knock-in Barrier','num',{u:'%',d:'60'}),
+          F('acfreq','Observation','select',{o:['Annual','Semi-annual','Quarterly'],d:'Annual'}),
+        ]},
+      ],
+    };
+
+    this.META = [
+      ['autocall','Autocallable / Phoenix','Equities'],
+      ['fcn','Fixed Coupon Note (FCN / One-Star)','Equities'],
+      ['accumulator','Accumulator','Equities'],
+      ['twinwin','Twin-Win Note','Equities'],
+      ['superbull','Superbull Autocallable','Equities'],
+      ['cln','Credit Linked Note (CLN)','Credit'],
+      ['clnaxe','CLN Axe','Credit'],
+      ['repackpickup','Bond Repack — Pick-up','Credit'],
+      ['repackcds','Bond Repack — CDS Overlay','Credit'],
+      ['linearzerocln','Linear Zero CLN','Credit'],
+      ['sofrfloater','Callable Capped/Floored Floater','Rates'],
+      ['fixedcallable','Fixed / Linear Zero Callable','Rates'],
+      ['inflation','Inflation Linked Note','Rates'],
+      ['rangeaccrual','Range Accrual Note','Rates'],
+      ['fxrange','FX Range Accrual + Conversion','FX'],
+      ['stepupautocall','Index Step-up Autocall','Index'],
+    ];
+    this.ORDER = ['Equities','Credit','Rates','FX','Index'];
+    this.clientList = ['Private Bank — Asia','Private Bank — MENA','Institutional — EMEA','Family Office — APAC','Retail Distribution — Hong Kong','Corporate Treasury'];
+  }
+
+  componentDidMount(){
+    try{
+      const raw = localStorage.getItem('hsbc_ts_builder_v1');
+      if(raw){
+        const s = JSON.parse(raw);
+        const pid = this.ENABLED.includes(s.productId) ? s.productId : 'cln';
+        this.setState({ productId:pid, values:s.values||{}, client:s.client||'', templateName:s.templateName||'' });
+      }
+    }catch(e){}
+  }
+
+  persist(next){
+    const s = Object.assign({}, this.state, next);
+    try{ localStorage.setItem('hsbc_ts_builder_v1', JSON.stringify({ productId:s.productId, values:s.values, client:s.client, templateName:s.templateName })); }catch(e){}
+  }
+
+  setField(k,v){
+    this.setState(st=>{ const values=Object.assign({},st.values,{[k]:v}); this.persist({values, saved:false}); return {values, saved:false}; });
+  }
+  selectProduct(id){ this.setState({productId:id, saved:false}, ()=>this.persist({})); }
+
+  meta(){ return this.META.find(m=>m[0]===this.state.productId) || this.META[0]; }
+  buildSections(){ return this.COMMON_PRE.concat(this.MID[this.state.productId]||[], this.COMMON_POST); }
+  missingRequired(){
+    let n=0; const values=this.state.values;
+    this.buildSections().forEach(sec=>sec.fields.forEach(f=>{ if(f.req){ const c=values[f.k]; const rv=(c!==undefined&&c!=='')?c:(f.d!==undefined?f.d:''); if(rv==='') n++; } }));
+    return n;
+  }
+
+  fmt(f, raw, ccy){
+    if(raw===undefined || raw===null || raw==='') return '';
+    const v = ''+raw;
+    if((f.k==='notional' || f.k==='denom' || f.k==='minsize' || f.k==='protnotional') && ccy) return ccy+' '+v;
+    const u = f.u;
+    if(!u) return v;
+    if(u==='%') return v+'%';
+    if(u==='x') return v+'x';
+    return v+' '+u;
+  }
+
+  renderVals(){
+    const meta = this.meta();
+    const values = this.state.values;
+    const ccy = values.currency || 'USD';
+
+    // Product dropdown, grouped by asset class. Only CLN + Linear Zero CLN are live for now; the rest are greyed out.
+    const productGroups = this.ORDER.map(name=>({
+      name,
+      options: this.META.filter(m=>m[2]===name).map(m=>({ id:m[0], label:m[1], disabled: !this.ENABLED.includes(m[0]) }))
+    })).filter(g=>g.options.length);
+
+    // Form sections
+    const secDefs = this.buildSections();
+    const inputBase = 'width:100%;padding:8px 10px;border:1px solid #d8d8d5;border-radius:2px;font-size:13px;background:#fff;color:#1c1c1c;outline:none;flex:1;min-width:0;';
+    const selBase = 'width:100%;padding:8px 26px 8px 10px;border:1px solid #d8d8d5;border-radius:2px;font-size:13px;background-color:#fff;color:#1c1c1c;outline:none;';
+    const areaBase = 'width:100%;padding:8px 10px;border:1px solid #d8d8d5;border-radius:2px;font-size:13px;background:#fff;color:#1c1c1c;outline:none;resize:vertical;line-height:1.4;';
+    const attempted = this.state.attempted;
+    const sections = secDefs.map(sec=>({
+      title: sec.title,
+      fields: sec.fields.map(f=>{
+        const cur = values[f.k];
+        const val = (cur!==undefined && cur!=='') ? cur : (f.d!==undefined ? f.d : '');
+        const isInput = f.t==='text'||f.t==='num'||f.t==='date';
+        const required = !!f.req;
+        const showErr = attempted && required && (val==='');
+        const inpStyle = (f.u ? inputBase+'border-radius:2px 0 0 2px;' : inputBase) + (showErr?'border-color:#DB0011;background:#fff6f6;':'');
+        return {
+          k:f.k, l:f.l, value:val,
+          placeholder:f.ph||'',
+          isSelect: f.t==='select', isArea: f.t==='area', isInput,
+          inputType: f.t==='date'?'date':'text',
+          options: f.o||[], unit: f.u||'', hasUnit: !!f.u,
+          required, showErr,
+          cellStyle: { gridColumn: f.t==='area'?'1 / -1':'auto' },
+          inputStyle: inpStyle,
+          selectStyle: showErr ? selBase+'border-color:#DB0011;background-color:#fff6f6;' : selBase,
+          areaStyle: showErr ? areaBase+'border-color:#DB0011;background:#fff6f6;' : areaBase,
+          onInput: (e)=>this.setField(f.k, e.target.value),
+        };
+      })
+    }));
+
+    // Preview (mirror of sections)
+    const preview = secDefs.map(sec=>({
+      title: sec.title,
+      rows: sec.fields.map(f=>{
+        const cur = values[f.k];
+        const raw = (cur!==undefined && cur!=='') ? cur : (f.d!==undefined ? f.d : '');
+        const disp = this.fmt(f, raw, ccy);
+        const empty = disp==='';
+        return {
+          l:f.l,
+          value: empty ? '—' : disp,
+          valStyle: empty
+            ? 'flex:1;text-align:right;color:#c2c2bc;'
+            : 'flex:1;text-align:right;color:#161616;font-weight:600;'
+        };
+      })
+    }));
+
+    // Completion
+    let total=0, filled=0;
+    secDefs.forEach(sec=>sec.fields.forEach(f=>{
+      total++;
+      const cur = values[f.k];
+      const raw = (cur!==undefined && cur!=='') ? cur : (f.d!==undefined ? f.d : '');
+      if(this.fmt(f, raw, ccy)!=='') filled++;
+    }));
+    const pct = total? Math.round(filled/total*100) : 0;
+
+    let reqTotal=0, reqMissing=0;
+    secDefs.forEach(sec=>sec.fields.forEach(f=>{ if(f.req){ reqTotal++; const c=values[f.k]; const rv=(c!==undefined&&c!=='')?c:(f.d!==undefined?f.d:''); if(rv==='') reqMissing++; } }));
+
+    const now = new Date();
+    const today = now.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+    const refId = 'HSBC-'+(this.state.productId||'ts').toUpperCase().slice(0,4)+'-'+now.getFullYear()+String(now.getMonth()+1).padStart(2,'0');
+
+    return {
+      productName: meta[1],
+      productAssetClass: meta[2],
+      productGroups,
+      onProductChange: (e)=>this.selectProduct(e.target.value),
+      sections, preview,
+      client: this.state.client,
+      clientList: this.clientList,
+      clientSuffix: this.state.client ? ' · '+this.state.client : '',
+      onClientChange: (e)=>this.setState({client:e.target.value}, ()=>this.persist({client:e.target.value})),
+      pctStyle: { width:pct+'%', height:'100%', background: pct<100?'#DB0011':'#3a8f47', borderRadius:'99px', transition:'width .3s ease' },
+      completionLabel: filled+' / '+total+' fields · '+pct+'%',
+      reqMissing,
+      reqComplete: reqMissing===0,
+      reqLabel: reqMissing+' of '+reqTotal+' required outstanding',
+      env: (this.props.environment ?? 'UAT'),
+      conf: (this.props.confidentialityTag ?? 'PRIVATE & CONFIDENTIAL'),
+      today, refId,
+      templateName: this.state.templateName,
+      saveLabel: this.state.saved ? '✓ Saved' : 'Save Draft',
+      fileRef: this.fileRef,
+      onUploadClick: ()=>{ if(this.fileRef.current) this.fileRef.current.click(); },
+      onFile: (e)=>{ const f=e.target.files && e.target.files[0]; if(f){ this.setState({templateName:f.name}, ()=>this.persist({templateName:f.name})); } },
+      onClearTemplate: ()=>this.setState({templateName:''}, ()=>this.persist({templateName:''})),
+      onReset: ()=>{ if(window.confirm('Clear all entered fields for this product?')){ this.setState({values:{}, templateName:'', saved:false, attempted:false}, ()=>this.persist({})); } },
+      onSaveDraft: ()=>{ this.persist({}); this.setState({saved:true}); },
+      onPrint: ()=>{ if(this.missingRequired()>0){ this.setState({attempted:true}); } else { window.print(); } },
+    };
+  }
+}
+</script>
+</body>
+</html>
